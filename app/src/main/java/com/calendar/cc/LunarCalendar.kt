@@ -172,8 +172,10 @@ object LunarCalendar {
         if (solarMonth == 5) {
             val cal = Calendar.getInstance()
             cal.set(solarYear, 4, 1)
-            val fw = cal.get(Calendar.DAY_OF_WEEK)
-            val secondSunday = 1 + (if (fw == 1) 7 else (7 - fw + 1) % 7) + 7
+            val fw = cal.get(Calendar.DAY_OF_WEEK) // 1=周日…7=周六
+            // 当月第一个周日的日号；fw==1 时取 1，否则 ((2-fw)%7+7)%7
+            val firstSunday = if (fw == 1) 1 else ((2 - fw) % 7 + 7) % 7
+            val secondSunday = firstSunday + 7
             if (solarDay == secondSunday) list.add("母亲节")
         }
 
@@ -182,10 +184,10 @@ object LunarCalendar {
             val cal = Calendar.getInstance()
             cal.set(solarYear, 5, 1)
             val fw = cal.get(Calendar.DAY_OF_WEEK)
-            val thirdSunday = 1 + (if (fw == 1) 7 else (7 - fw + 1) % 7) + 14
+            val firstSunday = if (fw == 1) 1 else ((2 - fw) % 7 + 7) % 7
+            val thirdSunday = firstSunday + 14
             if (solarDay == thirdSunday) list.add("父亲节")
         }
-
         return list
     }
 
