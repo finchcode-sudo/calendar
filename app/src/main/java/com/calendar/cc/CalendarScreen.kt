@@ -301,7 +301,7 @@ private fun DayCell(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
-    val hasFestival = dayInfo.festivals.any { it in listOf("春节", "国庆节", "元旦", "劳动节", "端午节", "中秋节", "元宵节", "除夕") }
+    val hasFestival = dayInfo.festivals.any { it in listOf("春节", "元旦", "元宵节", "龙抬头", "端午节", "七夕节", "中元节", "中秋节", "重阳节", "腊八节", "小年", "除夕", "劳动节", "国庆节", "情人节", "妇女节", "植树节", "愚人节", "青年节", "护士节", "儿童节", "建党节", "建军节", "教师节", "万圣节", "光棍节", "圣诞节", "母亲节", "父亲节") }
     val hasSolarTerm = dayInfo.solarTerm != null
 
     Column(
@@ -338,14 +338,19 @@ private fun DayCell(
             dayInfo.solarTerm.let { if (it.length <= 2) it else it.take(2) }
         } else if (hasFestival) {
             val fest = dayInfo.festivals.firstOrNull {
-                it in listOf("春节", "国庆节", "元旦", "劳动节", "端午节", "中秋节", "元宵节", "除夕")
+                it in listOf("春节", "元旦", "元宵节", "龙抬头", "端午节", "七夕节", "中元节", "中秋节", "重阳节", "腊八节", "小年", "除夕", "劳动节", "国庆节", "情人节", "妇女节", "植树节", "愚人节", "青年节", "护士节", "儿童节", "建党节", "建军节", "教师节", "万圣节", "光棍节", "圣诞节", "母亲节", "父亲节")
             }
             when (fest) {
-                "春节", "国庆节", "元旦" -> fest.take(2)
-                "端午节", "中秋节" -> fest.take(2)
+                "春节", "元旦", "国庆节" -> fest.take(2)
+                "端午节", "中秋节", "中元节" -> fest.take(2)
                 "元宵节" -> "元宵"
                 "劳动节" -> "劳动"
+                "七夕节" -> "七夕"
+                "重阳节" -> "重阳"
+                "腊八节" -> "腊八"
+                "小年" -> "小年"
                 "除夕" -> "除夕"
+                "龙抬头", "情人节", "妇女节", "植树节", "愚人节", "青年节", "护士节", "儿童节", "建党节", "建军节", "教师节", "万圣节", "光棍节", "圣诞节", "母亲节", "父亲节" -> fest.take(2)
                 else -> ""
             }
         } else {
