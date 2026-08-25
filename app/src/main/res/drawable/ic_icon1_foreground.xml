@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 背景圆角矩形 -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M0,24C0,10.745 10.745,0 24,0h60c13.255,0 24,10.745 24,24v60c0,13.255 -10.745,24 -24,24H24c-13.255,0 -24,-10.745 -24,-24V24Z" />
+    <!-- 日历主体 - 白色圆角矩形 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,32h64v48c0,3.314 -2.686,6 -6,6H28c-3.314,0 -6,-2.686 -6,-6V32Z" />
+    <!-- 日历顶部红色条 -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M22,32h64v10H22V32Z" />
+    <!-- 日历顶部白色小圆点（装饰） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,36.5m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,36.5m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,36.5m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <!-- 日历数字 25 -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M38,52h10v2H38V52ZM38,58h10v2H38V58ZM38,64h10v2H38V64ZM38,70h10v2H38V70Z" />
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M52,52h4v20h-4V52ZM60,52h4v20h-4V52Z" />
+    <!-- 日历挂环 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,22v10h-4V22c0,-3.314 2.686,-6 6,-6h0c3.314,0 6,2.686 6,6v10h-4V22c0,-1.105 -0.895,-2 -2,-2h0c-1.105,0 -2,0.895 -2,2Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,22v10h-4V22c0,-3.314 2.686,-6 6,-6h0c3.314,0 6,2.686 6,6v10h-4V22c0,-1.105 -0.895,-2 -2,-2h0c-1.105,0 -2,0.895 -2,2Z" />
+</vector>
