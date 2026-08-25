@@ -104,7 +104,7 @@ object LunarCalendar {
         val cValues = if (year in 1900..1999) TERM_C_20 else TERM_C_21
         val y = year % 100
         val d = 0.2422
-        val l = if (year in 1900..1999) y / 4 + 1 else y / 4 + 5
+        val l = if (year in 1900..1999) y / 4 + 1 else y / 4 
 
         // 每月两个节气
         for (offset in 0..1) {
