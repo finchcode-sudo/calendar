@@ -68,10 +68,13 @@ object LunarCalendar {
     // ============ 农历转换（ICU） ============
 
     fun solarToLunar(year: Int, month: Int, day: Int): FullDateInfo {
+        val greg = java.util.GregorianCalendar()
+        greg.clear()
+        greg.set(year, month - 1, day)   // 公历字段
+
         val cc = ChineseCalendar()
-        cc.set(Calendar.YEAR, year)
-        cc.set(Calendar.MONTH, month - 1)
-        cc.set(Calendar.DAY_OF_MONTH, day)
+        cc.clear()
+        cc.setTimeInMillis(greg.getTimeInMillis())
 
         val lunarYear = cc.get(ChineseCalendar.EXTENDED_YEAR) - 2637
         val lunarMonth = cc.get(ChineseCalendar.MONTH) + 1
