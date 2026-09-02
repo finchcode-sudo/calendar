@@ -24,7 +24,7 @@ import com.calendar.cc.ui.theme.*
 
 enum class AppScreen(val label: String, val icon: ImageVector) {
     CALENDAR("日历", Icons.Filled.CalendarMonth),
-    SEARCH("搜索", Icons.Filled.Search),
+    SEARCH("我的", Icons.Filled.Search),
     SETTINGS("设置", Icons.Filled.Settings)
 }
 
