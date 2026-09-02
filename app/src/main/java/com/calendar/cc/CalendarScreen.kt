@@ -3,6 +3,8 @@ package com.calendar.cc
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,14 +23,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calendar.cc.LunarCalendar.DayInfo
 import com.calendar.cc.ui.theme.*
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen() {
     val calendar = remember { Calendar.getInstance() }
-    var currentYear by remember { mutableIntStateOf(calendar.get(Calendar.YEAR)) }
-    var currentMonth by remember { mutableIntStateOf(calendar.get(Calendar.MONTH) + 1) }
+
+    // 月份分页范围：1900年1月 ~ 2100年12月，用于支持左右滑动切换月份
+    val minYear = 1900
+    val maxYear = 2100
+    val totalPages = remember { (maxYear - minYear + 1) * 12 }
+    fun yearMonthToPage(year: Int, month: Int) = (year - minYear) * 12 + (month - 1)
+    fun pageToYear(page: Int) = minYear + page / 12
+    fun pageToMonth(page: Int) = page % 12 + 1
+
+    val pagerState = rememberPagerState(
+        initialPage = yearMonthToPage(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1),
+        pageCount = { totalPages }
+    )
+    val pagerScope = rememberCoroutineScope()
+
+    // 记录上一个稳定页，用于判断是否是"滑动/翻页"触发的月份变化
+    var lastSettledPage by remember { mutableIntStateOf(pagerState.currentPage) }
+
     var selectedDay by remember { mutableIntStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
     var showYearPicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -36,8 +55,15 @@ fun CalendarScreen() {
 
     var refreshTrigger by remember { mutableIntStateOf(0) }
 
-    val days = remember(currentYear, currentMonth, refreshTrigger) {
-        LunarCalendar.getMonthDays(currentYear, currentMonth)
+    val currentYear = pageToYear(pagerState.currentPage)
+    val currentMonth = pageToMonth(pagerState.currentPage)
+
+    // 左右滑动（或翻页按钮）切换到新月份时，选中日重置为1号
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != lastSettledPage) {
+            selectedDay = 1
+            lastSettledPage = pagerState.currentPage
+        }
     }
 
     val selectedInfo = remember(currentYear, currentMonth, selectedDay, refreshTrigger) {
@@ -46,10 +72,6 @@ fun CalendarScreen() {
 
     val eventsForSelected = remember(currentYear, currentMonth, selectedDay, refreshTrigger) {
         EventManager.getEventsForDate(currentYear, currentMonth, selectedDay)
-    }
-
-    val eventsForMonth = remember(currentYear, currentMonth, refreshTrigger) {
-        EventManager.getEventsForMonth(currentYear, currentMonth)
     }
 
     Column(
@@ -97,9 +119,7 @@ fun CalendarScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = {
-                    currentMonth--
-                    if (currentMonth < 1) { currentMonth = 12; currentYear-- }
-                    selectedDay = 1
+                    pagerScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                 }) {
                     Icon(Icons.Filled.ChevronLeft, contentDescription = "上月", tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
@@ -116,9 +136,7 @@ fun CalendarScreen() {
                 )
 
                 TextButton(onClick = {
-                    currentMonth++
-                    if (currentMonth > 12) { currentMonth = 1; currentYear++ }
-                    selectedDay = 1
+                    pagerScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 }) {
                     Text("下月", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.width(4.dp))
@@ -164,31 +182,48 @@ fun CalendarScreen() {
 
             Spacer(Modifier.height(8.dp))
 
-            // === 日期网格 ===
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
-                days.chunked(7).forEach { week ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        week.forEachIndexed { index, dayInfo ->
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (dayInfo.isCurrentMonth) {
-                                    DayCell(
-                                        dayInfo = dayInfo,
-                                        isSunday = index == 0,
-                                        isSaturday = index == 6,
-                                        isSelected = dayInfo.day == selectedDay,
-                                        hasEvent = eventsForMonth.any { it.day == dayInfo.day },
-                                        onClick = {
-                                            selectedDay = dayInfo.day
-                                        }
-                                    )
-                                } else {
-                                    // 非本月日期留空
-                                    Spacer(Modifier.aspectRatio(0.85f))
+            // === 日期网格（支持左右滑动切换月份） ===
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                val pageYear = pageToYear(page)
+                val pageMonth = pageToMonth(page)
+                val pageDays = remember(pageYear, pageMonth, refreshTrigger) {
+                    LunarCalendar.getMonthDays(pageYear, pageMonth)
+                }
+                val pageEventsForMonth = remember(pageYear, pageMonth, refreshTrigger) {
+                    EventManager.getEventsForMonth(pageYear, pageMonth)
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                ) {
+                    pageDays.chunked(7).forEach { week ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            week.forEachIndexed { index, dayInfo ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (dayInfo.isCurrentMonth) {
+                                        DayCell(
+                                            dayInfo = dayInfo,
+                                            isSunday = index == 0,
+                                            isSaturday = index == 6,
+                                            isSelected = page == pagerState.currentPage && dayInfo.day == selectedDay,
+                                            hasEvent = pageEventsForMonth.any { it.day == dayInfo.day },
+                                            onClick = {
+                                                selectedDay = dayInfo.day
+                                                if (page != pagerState.currentPage) {
+                                                    lastSettledPage = page
+                                                    pagerScope.launch { pagerState.animateScrollToPage(page) }
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        // 非本月日期留空
+                                        Spacer(Modifier.aspectRatio(0.85f))
+                                    }
                                 }
                             }
                         }
@@ -204,9 +239,10 @@ fun CalendarScreen() {
                 OutlinedButton(
                     onClick = {
                         val now = Calendar.getInstance()
-                        currentYear = now.get(Calendar.YEAR)
-                        currentMonth = now.get(Calendar.MONTH) + 1
+                        val todayPage = yearMonthToPage(now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1)
                         selectedDay = now.get(Calendar.DAY_OF_MONTH)
+                        lastSettledPage = todayPage
+                        pagerScope.launch { pagerState.animateScrollToPage(todayPage) }
                     },
                     shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
@@ -243,7 +279,9 @@ fun CalendarScreen() {
         YearPickerDialog(
             currentYear = currentYear,
             onYearSelected = { year ->
-                currentYear = year
+                val targetPage = yearMonthToPage(year, currentMonth)
+                lastSettledPage = targetPage
+                pagerScope.launch { pagerState.scrollToPage(targetPage) }
                 showYearPicker = false
             },
             onDismiss = { showYearPicker = false }
@@ -254,9 +292,10 @@ fun CalendarScreen() {
     if (showDatePicker) {
         DateJumpDialog(
             onDateSelected = { year, month, day ->
-                currentYear = year
-                currentMonth = month
+                val targetPage = yearMonthToPage(year, month)
+                lastSettledPage = targetPage
                 selectedDay = day
+                pagerScope.launch { pagerState.scrollToPage(targetPage) }
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false }
