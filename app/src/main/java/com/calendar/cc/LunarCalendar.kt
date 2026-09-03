@@ -67,12 +67,14 @@ object LunarCalendar {
 
     // ============ 农历转换（ICU） ============
 
-    fun solarToLunar(year: Int, month: Int, day: Int): FullDateInfo {
-        val greg = java.util.GregorianCalendar()
-        greg.clear()
-        greg.set(year, month - 1, day)   // 公历字段
+    private val BEIJING_TZ: java.util.TimeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai")
 
-        val cc = ChineseCalendar()
+    fun solarToLunar(year: Int, month: Int, day: Int): FullDateInfo {
+        val greg = java.util.GregorianCalendar(BEIJING_TZ)
+        greg.clear()
+        greg.set(year, month - 1, day, 12, 0, 0)   // 取当日正午，避免时区换算导致跨日
+
+        val cc = ChineseCalendar(BEIJING_TZ)
         cc.clear()
         cc.setTimeInMillis(greg.getTimeInMillis())
 
@@ -160,7 +162,7 @@ object LunarCalendar {
 
             // 除夕：腊月最后一天
             if (lunarMonth == 12) {
-                val cc = ChineseCalendar()
+                val cc = ChineseCalendar(BEIJING_TZ)
                 cc.set(ChineseCalendar.EXTENDED_YEAR, lunarYear + 2637)
                 cc.set(ChineseCalendar.MONTH, 11)
                 cc.set(ChineseCalendar.DAY_OF_MONTH, 1)
