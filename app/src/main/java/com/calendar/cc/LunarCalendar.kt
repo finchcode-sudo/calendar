@@ -1,6 +1,5 @@
 package com.calendar.cc
 
-import android.icu.util.ChineseCalendar
 import java.util.Calendar
 
 object LunarCalendar {
@@ -38,6 +37,117 @@ object LunarCalendar {
         8.318, 23.438, 7.438, 22.36, 7.18, 21.94
     )
 
+    /**
+     * 农历 1900-2100 的闰大小信息表（权威数据，来源于紫金山天文台算法的通用实现）
+     * 每个数值的低 4 位表示当年闰几月（0 表示无闰月）；
+     * 从第 5 位到第 17 位表示农历 13 个月的大小月分布（1 为大月30天，0 为小月29天）；
+     * 第 17 位（0x10000）表示闰月是否为大月。
+     */
+    private val LUNAR_INFO = intArrayOf(
+        0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2, // 1900-1909
+        0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977, // 1910-1919
+        0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970, // 1920-1929
+        0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950, // 1930-1939
+        0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557, // 1940-1949
+        0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0, // 1950-1959
+        0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0, // 1960-1969
+        0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6, // 1970-1979
+        0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570, // 1980-1989
+        0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0, // 1990-1999
+        0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5, // 2000-2009
+        0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930, // 2010-2019
+        0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530, // 2020-2029
+        0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45, // 2030-2039
+        0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0, // 2040-2049
+        0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0, // 2050-2059
+        0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4, // 2060-2069
+        0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0, // 2070-2079
+        0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160, // 2080-2089
+        0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252, // 2090-2099
+        0x0d520 // 2100
+    )
+
+    /** 越界年份（表覆盖 1900-2100）安全裁剪到边界索引，避免数组越界崩溃 */
+    private fun lunarInfoIdx(y: Int) = (y - 1900).coerceIn(0, LUNAR_INFO.size - 1)
+
+    private fun lunarLeapMonth(y: Int): Int = LUNAR_INFO[lunarInfoIdx(y)] and 0xf
+
+    private fun lunarLeapDays(y: Int): Int {
+        return if (lunarLeapMonth(y) != 0) {
+            if ((LUNAR_INFO[lunarInfoIdx(y)] and 0x10000) != 0) 30 else 29
+        } else 0
+    }
+
+    private fun lunarMonthDays(y: Int, m: Int): Int {
+        if (m > 12 || m < 1) return 29
+        return if ((LUNAR_INFO[lunarInfoIdx(y)] and (0x10000 shr m)) != 0) 30 else 29
+    }
+
+    private fun lunarYearDays(y: Int): Int {
+        var sum = 348
+        var i = 0x8000
+        while (i > 0x8) {
+            if ((LUNAR_INFO[lunarInfoIdx(y)] and i) != 0) sum += 1
+            i = i shr 1
+        }
+        return sum + lunarLeapDays(y)
+    }
+
+    private data class LunarYMD(val year: Int, val month: Int, val day: Int, val isLeap: Boolean)
+
+    /** 阳历转农历年月日（1900-02-19 ~ 2100-12-31，基于权威闰月表逐日推算） */
+    private fun solarToLunarYMD(year: Int, month: Int, day: Int): LunarYMD {
+        val epoch = java.time.LocalDate.of(year, month, day)
+        val base = java.time.LocalDate.of(1900, 1, 31)
+        var offset = java.time.temporal.ChronoUnit.DAYS.between(base, epoch).toInt()
+
+        var i = 1900
+        var temp = 0
+        while (i < 2101 && offset > 0) {
+            temp = lunarYearDays(i)
+            offset -= temp
+            i++
+        }
+        if (offset < 0) {
+            offset += temp
+            i--
+        }
+        val lYear = i
+
+        val leap = lunarLeapMonth(lYear)
+        var isLeap = false
+        i = 1
+        while (i < 13 && offset > 0) {
+            if (leap > 0 && i == (leap + 1) && !isLeap) {
+                i--
+                isLeap = true
+                temp = lunarLeapDays(lYear)
+            } else {
+                temp = lunarMonthDays(lYear, i)
+            }
+            if (isLeap && i == (leap + 1)) {
+                isLeap = false
+            }
+            offset -= temp
+            i++
+        }
+        if (offset == 0 && leap > 0 && i == leap + 1) {
+            if (isLeap) {
+                isLeap = false
+            } else {
+                isLeap = true
+                i--
+            }
+        }
+        if (offset < 0) {
+            offset += temp
+            i--
+        }
+        val lMonth = i
+        val lDay = offset + 1
+        return LunarYMD(lYear, lMonth, lDay, isLeap)
+    }
+
     data class DayInfo(
         val day: Int,
         val month: Int,
@@ -65,24 +175,14 @@ object LunarCalendar {
         val festivals: List<String>
     )
 
-    // ============ 农历转换（ICU） ============
-
-    private val JAVA_BEIJING_TZ: java.util.TimeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai")
-    private val ICU_BEIJING_TZ: android.icu.util.TimeZone = android.icu.util.TimeZone.getTimeZone("Asia/Shanghai")
+    // ============ 农历转换（权威闰月表算法） ============
 
     fun solarToLunar(year: Int, month: Int, day: Int): FullDateInfo {
-        val greg = java.util.GregorianCalendar(JAVA_BEIJING_TZ)
-        greg.clear()
-        greg.set(year, month - 1, day, 12, 0, 0)   // 取当日正午，避免时区换算导致跨日
-
-        val cc = ChineseCalendar(ICU_BEIJING_TZ)
-        cc.clear()
-        cc.setTimeInMillis(greg.getTimeInMillis())
-
-        val lunarYear = cc.get(ChineseCalendar.EXTENDED_YEAR) - 2637
-        val lunarMonth = cc.get(ChineseCalendar.MONTH) + 1
-        val isLeap = cc.get(ChineseCalendar.IS_LEAP_MONTH) == 1
-        val lunarDay = cc.get(ChineseCalendar.DAY_OF_MONTH)
+        val ymd = solarToLunarYMD(year, month, day)
+        val lunarYear = ymd.year
+        val lunarMonth = ymd.month
+        val isLeap = ymd.isLeap
+        val lunarDay = ymd.day
 
         val ganZhiIdx = (lunarYear - 4) % 60
         val yearName = "${HEAVENLY_STEMS[ganZhiIdx % 10]}${EARTHLY_BRANCHES[ganZhiIdx % 12]}"
@@ -163,11 +263,7 @@ object LunarCalendar {
 
             // 除夕：腊月最后一天
             if (lunarMonth == 12) {
-                val cc = ChineseCalendar(ICU_BEIJING_TZ)
-                cc.set(ChineseCalendar.EXTENDED_YEAR, lunarYear + 2637)
-                cc.set(ChineseCalendar.MONTH, 11)
-                cc.set(ChineseCalendar.DAY_OF_MONTH, 1)
-                val lastDay = cc.getActualMaximum(ChineseCalendar.DAY_OF_MONTH)
+                val lastDay = lunarMonthDays(lunarYear, 12)
                 if (lunarDay == lastDay) list.add("除夕")
             }
 
