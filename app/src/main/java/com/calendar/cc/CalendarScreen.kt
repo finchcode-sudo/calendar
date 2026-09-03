@@ -646,18 +646,30 @@ private fun DateJumpDialog(
                 // 年份选择
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text("年", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.width(32.dp))
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = { year-- }) {
+                    Spacer(Modifier.width(4.dp))
+                    TextButton(
+                        onClick = { year = (year - 10).coerceIn(1900, 2100) },
+                        contentPadding = PaddingValues(horizontal = 6.dp)
+                    ) {
+                        Text("-10", style = MaterialTheme.typography.labelLarge)
+                    }
+                    IconButton(onClick = { year = (year - 1).coerceIn(1900, 2100) }) {
                         Icon(Icons.Filled.Remove, contentDescription = null)
                     }
                     Text(
                         "$year",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.width(80.dp),
+                        modifier = Modifier.width(64.dp),
                         textAlign = TextAlign.Center
                     )
-                    IconButton(onClick = { year++ }) {
+                    IconButton(onClick = { year = (year + 1).coerceIn(1900, 2100) }) {
                         Icon(Icons.Filled.Add, contentDescription = null)
+                    }
+                    TextButton(
+                        onClick = { year = (year + 10).coerceIn(1900, 2100) },
+                        contentPadding = PaddingValues(horizontal = 6.dp)
+                    ) {
+                        Text("+10", style = MaterialTheme.typography.labelLarge)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
