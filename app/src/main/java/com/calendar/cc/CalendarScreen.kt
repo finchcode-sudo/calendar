@@ -52,6 +52,7 @@ fun CalendarScreen() {
     var showYearPicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAddEvent by remember { mutableStateOf(false) }
+    var editingEvent by remember { mutableStateOf<CalendarEvent?>(null) }
 
     var refreshTrigger by remember { mutableIntStateOf(0) }
 
@@ -269,7 +270,13 @@ fun CalendarScreen() {
             }
 
             // === 选中日期详情卡片 ===
-            DateDetailCard(selectedInfo, eventsForSelected, onAddEvent = { showAddEvent = true }, onDeleteEvent = { refreshTrigger++ })
+            DateDetailCard(
+                selectedInfo,
+                eventsForSelected,
+                onAddEvent = { editingEvent = null; showAddEvent = true },
+                onDeleteEvent = { refreshTrigger++ },
+                onEditEvent = { event -> editingEvent = event; showAddEvent = true }
+            )
 
             Spacer(Modifier.height(16.dp))
         }
@@ -302,15 +309,17 @@ fun CalendarScreen() {
         )
     }
 
-    // 添加日程弹窗
+    // 添加/编辑日程弹窗
     if (showAddEvent) {
         AddEventDialog(
             year = currentYear,
             month = currentMonth,
             day = selectedDay,
-            onDismiss = { showAddEvent = false },
+            existingEvent = editingEvent,
+            onDismiss = { showAddEvent = false; editingEvent = null },
             onSaved = {
                 showAddEvent = false
+                editingEvent = null
                 refreshTrigger++
             }
         )
@@ -434,7 +443,8 @@ private fun DateDetailCard(
     info: LunarCalendar.FullDateInfo,
     events: List<CalendarEvent>,
     onAddEvent: () -> Unit,
-    onDeleteEvent: () -> Unit = {}
+    onDeleteEvent: () -> Unit = {},
+    onEditEvent: (CalendarEvent) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -560,7 +570,11 @@ private fun DateDetailCard(
 
                 events.forEach { event ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onEditEvent(event) }
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -713,18 +727,19 @@ private fun DateJumpDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddEventDialog(
+fun AddEventDialog(
     year: Int,
     month: Int,
     day: Int,
+    existingEvent: CalendarEvent? = null,
     onDismiss: () -> Unit,
     onSaved: () -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var isAllDay by remember { mutableStateOf(true) }
-    var hour by remember { mutableIntStateOf(9) }
-    var minute by remember { mutableIntStateOf(0) }
-    var note by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(existingEvent?.title ?: "") }
+    var isAllDay by remember { mutableStateOf(existingEvent?.let { it.hour < 0 } ?: true) }
+    var hour by remember { mutableIntStateOf(existingEvent?.hour?.takeIf { it >= 0 } ?: 9) }
+    var minute by remember { mutableIntStateOf(existingEvent?.minute ?: 0) }
+    var note by remember { mutableStateOf(existingEvent?.note ?: "") }
     var showError by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -732,7 +747,7 @@ private fun AddEventDialog(
         shape = RoundedCornerShape(24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
-            Text("添加日程", style = MaterialTheme.typography.titleLarge)
+            Text(if (existingEvent != null) "编辑日程" else "添加日程", style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column {
@@ -852,16 +867,22 @@ private fun AddEventDialog(
                         return@Button
                     }
                     val event = CalendarEvent(
+                        id = existingEvent?.id ?: java.util.UUID.randomUUID().toString(),
                         title = title,
                         year = year,
                         month = month,
                         day = day,
                         hour = if (isAllDay) -1 else hour,
                         minute = minute,
+                        color = existingEvent?.color ?: 0xFFFF6B6B.toInt(),
                         note = note,
-                        reminderMinutes = SettingsManager.defaultReminderMinutes
+                        reminderMinutes = existingEvent?.reminderMinutes ?: SettingsManager.defaultReminderMinutes
                     )
-                    EventManager.addEvent(event)
+                    if (existingEvent != null) {
+                        EventManager.updateEvent(event)
+                    } else {
+                        EventManager.addEvent(event)
+                    }
                     onSaved()
                 },
                 enabled = title.isNotBlank()
